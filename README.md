@@ -1,9 +1,4 @@
-# NEXTNICHE
-
-project for Nextniche by Team **Equalizers**
 <br>
-[project link]:(https://legendsareback.onrender.com)
-
 ## Problem Statements
 
 - Making **career** choices with **AI based counselling** accessible to every student at
@@ -49,12 +44,5 @@ A smart phone or a PC
 - confused seconodary level student </br>
   </br>
 
-
-## TEAM
-Team Member 1: **Akhilesh Patidar**
-<br/>
-Team Member 2: **Ankit Rai** 
-<br>
-Team Member 3: **Nepal Singh**
-<br>
-Team Member 4: **Kunal Singh** 
+#Developer
+ - Puja
