@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Career Guidance Chat</title>
+    <link href="https://fonts.googleapis.com/css?family=Josefin+Sans" rel="stylesheet">
+    <style>
+        html,
+        body {
+            padding: 0;
+            margin: 0;
+            max-width: 100%;
+            user-select: none;
+            background-color: #f0f2f5;
+            font-family: 'Josefin Sans', sans-serif;
+        }
+
+        header {
+            background-color: #1e88e5;
+            color: #fff;
+            padding: 10px 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        main {
+            width: 80%;
+            margin: auto;
+            padding: 10px;
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+
+        footer {
+            background-color: #fff;
+            padding: 10px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #command {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+        }
+
+        #questionInput {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            margin-right: 10px;
+            font-size: 16px;
+            width: fit-content;
+        }
+
+        button {
+            background-color: #1e88e5;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+            width: fit-content;
+            word-wrap: break-word;
+            white-space: pre-wrap; /* Preserve whitespace */
+        }
+
+        .message.user {
+            background-color: #1e88e5;
+            color: #fff;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.ai {
+            background-color: #fff;
+            color: #000;
+            margin-right: auto;
+            text-align: left;
+        }
+
+        .loading {
+            color: #999;
+            font-style: italic;
+        }
+
+        .typing-indicator {
+            display: inline-block;
+            width: 0;
+            height: 1em;
+            overflow: hidden;
+            white-space: nowrap;
+            vertical-align: bottom;
+            animation: typing 1.5s steps(30, end) forwards;
+        }
+
+        @keyframes typing {
+            from {
+                width: 0;
+            }
+
+            to {
+                width: 100%;
+            }
+        }
+
+        button#guidanceButton {
+            background-color: #4caf50;
+            /* Different color for distinction */
+            margin-left: 10px;
+        }
+
+        button#guidanceButton:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        Career Guidance Chat
+    </header>
+
+    <main id="chatContainer">
+        <!-- Messages will be displayed here -->
+    </main>
+
+    <footer>
+        <div id="command">
+            <input id="questionInput" placeholder="Type your question here..." type="text" />
+            <button id="askButton">Send</button>
+            <button id="guidanceButton">Take Guidance on Your Portfolio</button>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const chatContainer = document.querySelector("#chatContainer");
+            const questionInput = document.querySelector("#questionInput");
+            const askButton = document.querySelector("#askButton");
+            const guidanceButton = document.querySelector("#guidanceButton");
+
+            // Function to add a message to the chat
+            const addMessage = (text, isUser = true, isTyping = false) => {
+                const messageDiv = document.createElement("div");
+                messageDiv.classList.add("message", isUser ? "user" : "ai");
+
+                if (isTyping) {
+                    messageDiv.innerHTML = '<span class="typing-indicator"></span>';
+                } else {
+                    messageDiv.innerHTML = text;
+                }
+
+                chatContainer.appendChild(messageDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                return messageDiv;
+            };
+
+            // Function to simulate typing effect
+            const simulateTyping = (messageDiv, text) => {
+                let index = 0;
+                messageDiv.innerHTML = ''; // Clear previous content
+                const typingInterval = setInterval(() => {
+                    if (index < text.length) {
+                        messageDiv.innerHTML = text.substring(0, index + 1) + '<span class="typing-indicator"></span>';
+                        index++;
+                    } else {
+                        clearInterval(typingInterval);
+                    }
+                }, 10); // Adjust typing speed here (lower is faster)
+            };
+
+            // Handle click event on the Send button
+            askButton.addEventListener("click", async () => {
+                const question = questionInput.value.trim();
+                if (question) {
+                    questionInput.value = ""; // Clear input field
+                    addMessage(question, true); // Add user's message
+                    const loadingMessage = addMessage("Loading...", false); // Add loading message
+                    askButton.disabled = true; // Disable button to prevent multiple clicks
+
+                    try {
+                        console.log('Sending question to server:', question);
+                        const response = await fetch('/ask', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ question })
+                        });
+
+                        console.log('Server response status:', response.status);
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log('Received data:', data.response);
+                            loadingMessage.remove(); // Remove loading message
+
+                            // Add AI's response with typing effect
+                            const messageDiv = addMessage("", false, true);
+                            simulateTyping(messageDiv, data.response);
+                        } else {
+                            console.error('Server response not OK:', response.status);
+                            loadingMessage.innerText = "Error retrieving response."; // Update loading message
+                        }
+                    } catch (error) {
+                        console.error('Error sending question to server:', error);
+                        loadingMessage.innerText = "An error occurred."; // Update loading message
+                    } finally {
+                        askButton.disabled = false; // Re-enable button after processing
+                    }
+                }
+            });
+
+            // Handle Enter key press to send message
+            questionInput.addEventListener("keypress", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    askButton.click();
+                }
+            });
+
+            // Handle click event on the Guidance button
+            guidanceButton.addEventListener("click", async () => {
+                guidanceButton.disabled = true; // Disable button to prevent multiple clicks
+                const loadingMessage = addMessage("Fetching guidance...", false); // Add loading message
+
+                try {
+                    console.log('Requesting portfolio guidance');
+                    const response = await fetch('/guidance', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ /* User data here */ }) // Replace with actual user data
+                    });
+
+                    console.log('Server response status:', response.status);
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('Received data:', data.guidance);
+                        loadingMessage.remove(); // Remove loading message
+
+                        // Add AI's response with typing effect
+                        const messageDiv = addMessage("", false, true);
+                        simulateTyping(messageDiv, data.guidance);
+                    } else {
+                        console.error('Server response not OK:', response.status);
+                        loadingMessage.innerText = "Error retrieving guidance."; // Update loading message
+                    }
+                } catch (error) {
+                    console.error('Error fetching guidance:', error);
+                    loadingMessage.innerText = "An error occurred."; // Update loading message
+                } finally {
+                    guidanceButton.disabled = false; // Re-enable button after processing
+                }
+            });
+        });
+    </script>
+
+</body>
+
+</html>

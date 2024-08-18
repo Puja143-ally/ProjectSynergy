@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/path/to/your/styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            margin-top: 0;
+            color: #333;
+        }
+        .stats-charts {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .chart-container {
+            background: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .chart-container h3 {
+            margin-top: 0;
+            color: #555;
+        }
+        canvas {
+            width: 100% !important;
+            height: 400px !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1>Welcome, {{user.name}}!</h1>
+        <p>{{user.email}}</p>
+
+        <div class="stats-charts">
+            <!-- Average Score Over Time -->
+            <div class="chart-container">
+                <h3>Average Score Over Time</h3>
+                <canvas id="averageScoreChart"></canvas>
+            </div>
+            <!-- Pass Rate by Field -->
+            <div class="chart-container">
+                <h3>Pass Rate by Field</h3>
+                <canvas id="passRateChart"></canvas>
+            </div>
+            <!-- Score Distribution -->
+            <div class="chart-container">
+                <h3>Score Distribution</h3>
+                <canvas id="scoreDistributionChart"></canvas>
+            </div>
+            <!-- Average Response Time by Field -->
+            <div class="chart-container">
+                <h3>Average Response Time by Field</h3>
+                <canvas id="responseTimeChart"></canvas>
+            </div>
+            <!-- Question Accuracy by Field -->
+            <div class="chart-container">
+                <h3>Question Accuracy by Field</h3>
+                <canvas id="accuracyByFieldChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Pass data as JSON from Handlebars
+        const testDates = {{{json (pluck user.tests 'date')}}};
+        const testScores = {{{json (pluck user.tests 'score')}}};
+        const fields = {{{json (pluck user.tests 'field')}}};
+        const passRates = fields.reduce((acc, field) => {
+            acc[field] = acc[field] ? acc[field] + 1 : 1;
+            return acc;
+        }, {});
+
+        const responseTimes = {{{json (pluck user.tests 'timings')}}};
+        const correctAnswers = {{{json (pluck user.tests 'questions')}}};
+
+        // Average Score Over Time
+        const ctxAverageScore = document.getElementById('averageScoreChart').getContext('2d');
+        new Chart(ctxAverageScore, {
+            type: 'line',
+            data: {
+                labels: testDates,
+                datasets: [{
+                    label: 'Average Score (%)',
+                    data: testScores,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Test Dates'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Score (%)'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Pass Rate by Field
+        const ctxPassRate = document.getElementById('passRateChart').getContext('2d');
+        new Chart(ctxPassRate, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(passRates),
+                datasets: [{
+                    label: 'Number of Tests Passed',
+                    data: Object.values(passRates),
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Field'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Tests'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Score Distribution
+        const scoreDistribution = testScores.reduce((acc, score) => {
+            if (score >= 90) acc['Excellent']++;
+            else if (score >= 75) acc['Good']++;
+            else if (score >= 50) acc['Average']++;
+            else acc['Poor']++;
+            return acc;
+        }, { 'Excellent': 0, 'Good': 0, 'Average': 0, 'Poor': 0 });
+
+        const ctxScoreDistribution = document.getElementById('scoreDistributionChart').getContext('2d');
+        new Chart(ctxScoreDistribution, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(scoreDistribution),
+                datasets: [{
+                    label: 'Score Distribution',
+                    data: Object.values(scoreDistribution),
+                    backgroundColor: ['rgba(75, 192, 192, 0.2)', 'rgba(54, 162, 235, 0.2)', 'rgba(255, 206, 86, 0.2)', 'rgba(255, 99, 132, 0.2)'],
+                    borderColor: ['rgba(75, 192, 192, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)', 'rgba(255, 99, 132, 1)'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true
+            }
+        });
+
+        // Average Response Time by Field
+        const avgResponseTimes = fields.map((field, idx) => {
+            const times = responseTimes[idx];
+            return times.reduce((a, b) => a + b, 0) / times.length;
+        });
+
+        const ctxResponseTime = document.getElementById('responseTimeChart').getContext('2d');
+        new Chart(ctxResponseTime, {
+            type: 'radar',
+            data: {
+                labels: fields,
+                datasets: [{
+                    label: 'Average Response Time (s)',
+                    data: avgResponseTimes,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    r: {
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            }
+        });
+
+        // Question Accuracy by Field
+        const accuracyByField = fields.map((field, idx) => {
+            const questions = correctAnswers[idx];
+            const correct = questions.filter(q => q.userAnswer === q.correctAnswer).length;
+            return correct / questions.length * 100;
+        });
+
+        const ctxAccuracyByField = document.getElementById('accuracyByFieldChart').getContext('2d');
+        new Chart(ctxAccuracyByField, {
+            type: 'bar',
+            data: {
+                labels: fields,
+                datasets: [{
+                    label: 'Accuracy (%)',
+                    data: accuracyByField,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Accuracy (%)'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
